@@ -39,20 +39,21 @@ RUN echo "=== Checking dist structure ===" && \
 RUN mkdir -p /app/data && chmod 755 /app/data
 
 # Create startup script that finds the correct main.js location
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'if [ -f dist/src/main.js ]; then' >> /app/start.sh && \
-    echo '  echo "Starting from dist/src/main.js"' >> /app/start.sh && \
-    echo '  exec node dist/src/main.js' >> /app/start.sh && \
-    echo 'elif [ -f dist/main.js ]; then' >> /app/start.sh && \
-    echo '  echo "Starting from dist/main.js"' >> /app/start.sh && \
-    echo '  exec node dist/main.js' >> /app/start.sh && \
-    echo 'else' >> /app/start.sh && \
-    echo '  echo "ERROR: main.js not found!"' >> /app/start.sh && \
-    echo '  echo "Contents of dist/:"' >> /app/start.sh && \
-    echo '  ls -la dist/ || echo "dist/ does not exist"' >> /app/start.sh && \
-    echo '  echo "Contents of dist/src/:"' >> /app/start.sh && \
-    echo '  ls -la dist/src/ 2>/dev/null || echo "dist/src/ does not exist"' >> /app/start.sh && \
-    echo '  exit 1' >> /app/start.sh && \
+RUN printf '#!/bin/sh\n\
+if [ -f dist/src/main.js ]; then\n\
+  echo "Starting from dist/src/main.js"\n\
+  exec node dist/src/main.js\n\
+elif [ -f dist/main.js ]; then\n\
+  echo "Starting from dist/main.js"\n\
+  exec node dist/main.js\n\
+else\n\
+  echo "ERROR: main.js not found!"\n\
+  echo "Contents of dist/:"\n\
+  ls -la dist/ || echo "dist/ does not exist"\n\
+  echo "Contents of dist/src/:"\n\
+  ls -la dist/src/ 2>/dev/null || echo "dist/src/ does not exist"\n\
+  exit 1\n\
+fi\n' > /app/start.sh && \
     chmod +x /app/start.sh
 
 # Create non-root user for security
