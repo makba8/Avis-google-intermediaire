@@ -6,9 +6,11 @@ Ce guide explique comment déployer l'application Avis Google avec Docker.
 
 - Docker (version 20.10+)
 - Docker Compose (version 2.0+)
-- Fichiers de configuration Google :
+- Fichiers de configuration Google (pour développement local) :
   - `back/credentials.json` (téléchargé depuis Google Cloud Console)
   - `back/token.json` (généré avec `npm run generate-google-token`)
+  
+  **Note** : Pour le déploiement cloud (Render, etc.), vous pouvez utiliser les variables d'environnement `GOOGLE_CREDENTIALS_JSON` et `GOOGLE_TOKEN_JSON` au lieu de monter les fichiers.
 
 ## 🚀 Déploiement rapide
 
@@ -55,10 +57,26 @@ REACT_APP_EMAILJS_USER_ID=your_user_id
 
 ### 2. Préparation des fichiers Google
 
+**Option A : Développement local (avec volumes Docker)**
+
 Assurez-vous que les fichiers suivants existent dans le dossier `back/` :
 
 - `credentials.json` : Fichier de credentials Google (téléchargé depuis Google Cloud Console)
 - `token.json` : Token d'authentification (généré avec `npm run generate-google-token`)
+
+**Option B : Déploiement cloud (avec variables d'environnement)**
+
+Pour le déploiement sur Render ou d'autres plateformes cloud, ajoutez ces variables dans votre fichier `.env` ou dans le dashboard de votre plateforme :
+
+```env
+# Copiez le contenu COMPLET de credentials.json (sur une seule ligne)
+GOOGLE_CREDENTIALS_JSON={"installed":{"client_id":"...","client_secret":"...","redirect_uris":["..."]}}
+
+# Copiez le contenu COMPLET de token.json (sur une seule ligne)
+GOOGLE_TOKEN_JSON={"access_token":"...","refresh_token":"...","scope":"...","token_type":"Bearer","expiry_date":...}
+```
+
+**Important** : Les fichiers seront créés automatiquement au démarrage du conteneur si ces variables sont définies.
 
 ### 3. Création du dossier de données
 
@@ -190,6 +208,25 @@ sudo chown -R $USER:$USER back/data
 ```
 
 ## 🚢 Déploiement en production
+
+### Déploiement sur Render
+
+Pour déployer sur Render :
+
+1. **Connectez votre repository** à Render
+2. **Créez un service Web** pour le backend
+3. **Configurez les variables d'environnement** dans le dashboard Render :
+   - Toutes les variables du fichier `.env`
+   - **Important** : Pour `GOOGLE_CREDENTIALS_JSON` et `GOOGLE_TOKEN_JSON` :
+     - Ouvrez vos fichiers `credentials.json` et `token.json` localement
+     - Copiez le contenu JSON complet (sur une seule ligne, sans retours à la ligne)
+     - Collez-le dans les variables d'environnement correspondantes dans Render
+     - Exemple : `GOOGLE_CREDENTIALS_JSON={"installed":{"client_id":"...","client_secret":"..."}}`
+4. **Dockerfile** : Le Dockerfile détecte automatiquement ces variables et crée les fichiers au démarrage
+5. **Build Command** : Laissez Render détecter automatiquement le Dockerfile
+6. **Start Command** : Non nécessaire, le CMD du Dockerfile sera utilisé
+
+**Note** : Les fichiers `credentials.json` et `token.json` seront créés automatiquement au démarrage si les variables `GOOGLE_CREDENTIALS_JSON` et `GOOGLE_TOKEN_JSON` sont définies.
 
 ### Recommandations
 

@@ -56,6 +56,24 @@ else\n\
 fi\n' > /app/start.sh && \
     chmod +x /app/start.sh
 
+# Create docker entrypoint script that creates Google files from env vars
+RUN printf '#!/bin/sh\n\
+# Create credentials.json from environment variable if not already present\n\
+if [ -n "$GOOGLE_CREDENTIALS_JSON" ] && [ ! -f /app/credentials.json ]; then\n\
+  echo "Creating credentials.json from environment variable..."\n\
+  echo "$GOOGLE_CREDENTIALS_JSON" > /app/credentials.json\n\
+  chmod 644 /app/credentials.json\n\
+fi\n\
+# Create token.json from environment variable if not already present\n\
+if [ -n "$GOOGLE_TOKEN_JSON" ] && [ ! -f /app/token.json ]; then\n\
+  echo "Creating token.json from environment variable..."\n\
+  echo "$GOOGLE_TOKEN_JSON" > /app/token.json\n\
+  chmod 644 /app/token.json\n\
+fi\n\
+# Start the application\n\
+exec /app/start.sh\n' > /app/docker-entrypoint.sh && \
+    chmod +x /app/docker-entrypoint.sh
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
@@ -63,8 +81,10 @@ RUN addgroup -g 1001 -S nodejs && \
 # Change ownership of app directory (but not mounted volumes)
 RUN chown -R nestjs:nodejs /app
 
-# Note: credentials.json and token.json will be mounted as volumes
-# They should be readable by the user (chmod 644 recommended on host)
+# Note: credentials.json and token.json can be:
+# 1. Mounted as volumes (for local development)
+# 2. Created from GOOGLE_CREDENTIALS_JSON and GOOGLE_TOKEN_JSON env vars (for cloud deployment)
+# They should be readable by the user (chmod 644 recommended)
 USER nestjs
 
 # Expose port
@@ -74,8 +94,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/stats', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Start the application
-CMD ["/app/start.sh"]
+# Start the application using entrypoint that handles Google credentials
+CMD ["/app/docker-entrypoint.sh"]
 
 
 
