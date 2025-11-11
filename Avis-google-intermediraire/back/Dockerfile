@@ -1,29 +1,58 @@
-# Use Node.js LTS version
-FROM node:18-alpine
+# Stage 1: Build
+FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
-# Copy application files
+# Copy source code
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
+# Stage 2: Production
+FROM node:18-alpine AS production
+
+WORKDIR /app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy necessary files
+COPY --from=builder /app/src/Ressources ./src/Ressources
+
+# Create data directory for SQLite with proper permissions
+RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nestjs -u 1001
+
+# Change ownership of app directory (but not mounted volumes)
+RUN chown -R nestjs:nodejs /app
+
+# Note: credentials.json and token.json will be mounted as volumes
+# They should be readable by the user (chmod 644 recommended on host)
+USER nestjs
 
 # Expose port
 EXPOSE 3000
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/stats', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
 # Start the application
-CMD ["npm", "run", "start:prod"]
+CMD ["node", "dist/main.js"]
 
 
 
