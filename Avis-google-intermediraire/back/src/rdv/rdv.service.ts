@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { Constants } from '../Ressources/Constants';
 
 @Injectable()
 export class RdvService {
@@ -14,7 +15,8 @@ export class RdvService {
   ) {}
 
   private genToken() {
-    return crypto.randomBytes(24).toString('hex');
+    // Génère un token de 24 bytes = 48 caractères hex
+    return crypto.randomBytes(Constants.TOKEN_LENGTH / 2).toString('hex');
   }
 
   async findByCalendarEventId(eventId: string) {
@@ -24,7 +26,7 @@ export class RdvService {
   async createFromCalendar(payload: { calendarEventId: string; emailClient?: string; dateRdv: Date }) {
     const token = this.genToken();
     const rdv = this.rdvRepo.create({
-      emailClient: payload.emailClient || null,
+      emailClient: payload.emailClient || '',
       dateRdv: payload.dateRdv,
       token,
       calendarEventId: payload.calendarEventId

@@ -3,27 +3,28 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Vote } from './vote.entity';
 import { Rdv } from '../rdv/rdv.entity';
 import { Repository, DataSource } from 'typeorm';
-import { MailService } from '../mail/mail.service';
+import { Constants } from '../Ressources/Constants';
 
 @Injectable()
 export class VoteService {
   constructor(
     @InjectRepository(Vote) private voteRepo: Repository<Vote>,
     @InjectRepository(Rdv) private rdvRepo: Repository<Rdv>,
-    private dataSource: DataSource,
-    private mailService: MailService
+    private dataSource: DataSource
   ) {}
 
   async createVote(token: string, note: number, commentaire?: string) {
-    if (note < 1 || note > 5) throw new BadRequestException('note must be between 1 and 5');
+    if (!Constants.isValidRating(note)) {
+      throw new BadRequestException(Constants.ERROR_INVALID_RATING);
+    }
 
     // transaction pour éviter doublons
     return this.dataSource.transaction(async manager => {
       const rdv = await manager.findOne(Rdv, { where: { token } });
-      if (!rdv) throw new BadRequestException('Invalid token');
+      if (!rdv) throw new BadRequestException(Constants.ERROR_INVALID_TOKEN);
 
       const existing = await manager.findOne(Vote, { where: { token } });
-      if (existing) throw new ConflictException('Vote already exists for this token');
+      if (existing) throw new ConflictException(Constants.ERROR_VOTE_ALREADY_EXISTS);
 
       const vote = manager.create(Vote, {
         token,
@@ -33,12 +34,45 @@ export class VoteService {
       });
       await manager.save(vote);
 
-      // si note < 4 : notifier le podologue
-      if (note < 4) {
-        await this.mailService.sendInternalBadReview(process.env.MAIL_FROM ?? '', note, commentaire);
-      }
+      // Note: L'email au podologue pour les mauvaises notes est géré côté frontend via EmailJS
+      // Le backend enregistre simplement le vote dans la base de données
 
-      return { vote, redirect: note >= 4 ? process.env.GOOGLE_REVIEW_URL : null };
+      return { 
+        vote, 
+        redirect: Constants.isPositiveRating(note) ? Constants.getGoogleReviewUrl() : null 
+      };
     });
+  }
+
+  async validateToken(token: string) {
+    if (!token) {
+      return { valid: false, alreadyVoted: false };
+    }
+
+    const rdv = await this.rdvRepo.findOne({ where: { token } });
+    if (!rdv) {
+      return { valid: false, alreadyVoted: false };
+    }
+
+    const existingVote = await this.voteRepo.findOne({ where: { token } });
+    return { valid: true, alreadyVoted: !!existingVote };
+  }
+
+  async getStats() {
+    const totalRdv = await this.rdvRepo.count();
+    const totalVotes = await this.voteRepo.count();
+    
+    const votes = await this.voteRepo.find();
+    const averageRating = votes.length > 0 
+      ? votes.reduce((sum, v) => sum + v.note, 0) / votes.length 
+      : 0;
+    const badVotes = votes.filter(v => !Constants.isPositiveRating(v.note)).length;
+
+    return {
+      totalRdv,
+      totalVotes,
+      averageRating: Math.round(averageRating * 10) / 10,
+      badVotes
+    };
   }
 }

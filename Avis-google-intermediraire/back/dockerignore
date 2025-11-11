@@ -1,0 +1,16 @@
+node_modules
+npm-debug.log
+dist
+.env
+.git
+.gitignore
+README.md
+.vscode
+coverage
+.DS_Store
+data/*.sqlite
+token.json
+credentials.json
+
+
+

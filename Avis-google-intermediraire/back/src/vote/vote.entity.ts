@@ -4,15 +4,15 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 
 export class Vote {
   @PrimaryGeneratedColumn('uuid') id: string;
 
-  @Index()
-  @Column()
+  @Index({ unique: true })
+  @Column({ unique: true })
   token: string;
 
   @Column('integer')
   note: number;
 
   @Column({ type: 'text', nullable: true })
-  commentaire: string;
+  commentaire: string | null;
 
   @Column({ type: 'datetime' })
   dateVote: Date;

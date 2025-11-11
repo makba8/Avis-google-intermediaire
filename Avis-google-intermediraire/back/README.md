@@ -1,98 +1,308 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Avis Podologue - Backend (Version Intermédiaire)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend NestJS pour la collecte automatisée d'avis clients à partir de Google Calendar.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Prérequis
 
-## Description
+- Node.js 18+
+- npm ou yarn
+- Compte Google avec accès à Google Calendar API
+- Serveur SMTP pour l'envoi d'emails
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 🚀 Installation
 
-## Project setup
-
+1. Installer les dépendances :
 ```bash
-$ npm install
+npm install
 ```
 
-## Compile and run the project
-
+2. Copier le fichier d'environnement :
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+cp env.example .env
 ```
 
-## Run tests
+3. Configurer les variables d'environnement dans `.env`
+
+## 🔐 Configuration Google Calendar
+
+### 1. Créer un projet Google Cloud
+
+1. Aller sur [Google Cloud Console](https://console.cloud.google.com/)
+2. Créer un nouveau projet
+3. Activer l'API Google Calendar
+4. Créer des identifiants OAuth 2.0 (application de bureau)
+5. Télécharger le fichier JSON et le renommer en `credentials.json`
+6. Placer `credentials.json` à la racine du projet backend
+
+### 2. Générer le token d'authentification
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run generate-google-token
 ```
 
-## Deployment
+Suivez les instructions pour autoriser l'application. Un fichier `token.json` sera créé.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. Tester la connexion
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm run test-google-calendar
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## 📧 Configuration Email
 
-## Resources
+Configurez votre serveur SMTP dans le fichier `.env` :
 
-Check out a few resources that may come in handy when working with NestJS:
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-username
+SMTP_PASS=your-password
+MAIL_FROM="Cabinet Podologie <no-reply@example.com>"
+POD_PRAT_EMAIL=podologue@example.com
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Pour les tests, vous pouvez utiliser [Mailtrap](https://mailtrap.io/) ou [Ethereal](https://ethereal.email/).
 
-## Support
+## 🏃 Démarrage
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Mode développement
+```bash
+npm run start:dev
+```
 
-## Stay in touch
+### Mode production
+```bash
+npm run build
+npm run start:prod
+```
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+Le serveur démarre sur `http://localhost:3000` (configurable via `PORT` dans `.env`)
 
-## License
+## 📡 API Endpoints
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+### Rendez-vous
+
+#### `POST /api/rdv`
+Créer un rendez-vous manuellement (pour tests)
+
+**Body:**
+```json
+{
+  "emailClient": "patient@example.com",
+  "dateRdv": "2025-11-06T14:00:00Z"
+}
+```
+
+#### `POST /api/rdv/:id/send-mail`
+Forcer l'envoi du mail pour un RDV existant
+
+### Votes
+
+#### `POST /api/vote`
+Soumettre un vote
+
+**Body:**
+```json
+{
+  "token": "hex-token-from-email",
+  "note": 5,
+  "commentaire": "Excellent service!"
+}
+```
+
+**Response:**
+- Si note >= 4: `{ "redirectUrl": "https://..." }`
+- Si note < 4: `{ "ok": true }` (email envoyé au podologue)
+
+#### `GET /api/vote/validate?token=xxx`
+Valider un token
+
+**Response:**
+```json
+{
+  "valid": true,
+  "alreadyVoted": false
+}
+```
+
+### Statistiques
+
+#### `GET /api/stats`
+Obtenir les statistiques
+
+**Response:**
+```json
+{
+  "totalRdv": 120,
+  "totalVotes": 90,
+  "averageRating": 4.6,
+  "badVotes": 5
+}
+```
+
+## ⚙️ Fonctionnement du Cron
+
+Le service cron s'exécute toutes les `CALENDAR_POLL_MINUTES` minutes (défaut: 15) pour :
+
+1. Récupérer les événements terminés depuis Google Calendar
+2. Extraire l'email du patient des participants
+3. Créer une entrée RDV locale si elle n'existe pas
+4. Envoyer automatiquement un email avec un lien unique
+5. Éviter les doublons via `calendarEventId`
+
+## 🗄️ Base de données
+
+Le projet utilise SQLite pour sa simplicité. La base de données est créée automatiquement dans `data/avis.sqlite`.
+
+### Schéma
+
+**Table `rdv`:**
+- `id` (UUID)
+- `emailClient` (string, nullable)
+- `dateRdv` (datetime)
+- `token` (string, unique)
+- `calendarEventId` (string, nullable, indexed)
+- `mailEnvoye` (boolean)
+- `createdAt`, `updatedAt`
+
+**Table `vote`:**
+- `id` (UUID)
+- `token` (string, unique, indexed)
+- `note` (integer 1-5)
+- `commentaire` (text, nullable)
+- `dateVote` (datetime)
+- `createdAt`
+
+## 🐳 Déploiement Docker
+
+### Build l'image
+```bash
+docker build -t avis-podologue-backend .
+```
+
+### Lancer le container
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/credentials.json:/app/credentials.json \
+  -v $(pwd)/token.json:/app/token.json \
+  --env-file .env \
+  --name avis-backend \
+  avis-podologue-backend
+```
+
+## 🔒 Sécurité
+
+⚠️ **Important:**
+
+- Ne JAMAIS committer `.env`, `credentials.json`, `token.json` ou `data/avis.sqlite`
+- Utiliser HTTPS en production
+- Configurer un rate limiter en production
+- Sauvegarder régulièrement la base de données SQLite
+- Considérer PostgreSQL pour une montée en charge
+
+## 🧪 Tests
+
+### Tests unitaires
+```bash
+npm run test
+```
+
+### Tests e2e
+```bash
+npm run test:e2e
+```
+
+### Tests manuels
+
+1. **Test Google Calendar:**
+```bash
+npm run test-google-calendar
+```
+
+2. **Test création RDV:**
+```bash
+curl -X POST http://localhost:3000/api/rdv \
+  -H "Content-Type: application/json" \
+  -d '{"emailClient": "test@example.com", "dateRdv": "2025-11-06T14:00:00Z"}'
+```
+
+3. **Test vote:**
+```bash
+curl -X POST http://localhost:3000/api/vote \
+  -H "Content-Type: application/json" \
+  -d '{"token": "YOUR_TOKEN", "note": 5, "commentaire": "Super!"}'
+```
+
+4. **Test stats:**
+```bash
+curl http://localhost:3000/api/stats
+```
+
+## 📝 Structure du projet
+
+```
+/back
+├── src/
+│   ├── main.ts                 # Point d'entrée
+│   ├── app.module.ts           # Module principal
+│   ├── config/
+│   │   └── config.module.ts    # Configuration env
+│   ├── rdv/
+│   │   ├── rdv.entity.ts
+│   │   ├── rdv.service.ts
+│   │   ├── rdv.controller.ts
+│   │   └── rdv.module.ts
+│   ├── vote/
+│   │   ├── vote.entity.ts
+│   │   ├── vote.service.ts
+│   │   ├── vote.controller.ts
+│   │   └── vote.module.ts
+│   ├── mail/
+│   │   ├── mail.service.ts
+│   │   └── mail.module.ts
+│   ├── google/
+│   │   ├── google.service.ts
+│   │   └── google.module.ts
+│   ├── cron/
+│   │   ├── calendar-cron.service.ts
+│   │   └── cron.module.ts
+│   ├── stats/
+│   │   └── stats.controller.ts
+│   └── common/
+│       └── dtos/
+├── scripts/
+│   ├── get_google_token.ts
+│   └── test_google_calendar.ts
+├── data/
+│   └── avis.sqlite
+├── Dockerfile
+├── env.example
+└── package.json
+```
+
+## 🆘 Dépannage
+
+### "Google token.json missing"
+Exécuter `npm run generate-google-token`
+
+### "SMTP connection failed"
+Vérifier les credentials SMTP dans `.env`
+
+### "Database is locked"
+SQLite est mono-thread. En production, considérer PostgreSQL.
+
+### Le cron ne s'exécute pas
+Vérifier les logs et la variable `CALENDAR_POLL_MINUTES`
+
+## 📚 Ressources
+
+- [NestJS Documentation](https://docs.nestjs.com/)
+- [Google Calendar API](https://developers.google.com/calendar)
+- [TypeORM Documentation](https://typeorm.io/)
+- [Nodemailer Documentation](https://nodemailer.com/)
+
+## 📄 Licence
+
+Projet privé - Tous droits réservés

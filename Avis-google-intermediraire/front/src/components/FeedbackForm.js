@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import emailjs from 'emailjs-com';
 
-function FeedbackForm({ rating }) {
+function FeedbackForm({ rating, token, apiUrl }) {
   const serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
   const templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
   const userId = process.env.REACT_APP_EMAILJS_USER_ID;
@@ -11,6 +11,7 @@ function FeedbackForm({ rating }) {
   const messageRef = useRef(null);
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState(null);
 
   const adjustHeight = () => {
     const ta = messageRef.current;
@@ -32,11 +33,7 @@ function FeedbackForm({ rating }) {
     setName(e.target.value);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (sending) return;
-    setSending(true);
-
+  const sendViaEmailJS = () => {
     const templateParams = {
       name: name === '' ? 'Anonyme' : name,
       note: rating,
@@ -47,11 +44,66 @@ function FeedbackForm({ rating }) {
       .send(serviceId, templateId, templateParams, userId)
       .then(() => {
         setSent(true);
+        setSending(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error('EmailJS error:', err);
+        setError('Erreur lors de l\'envoi par email. Veuillez réessayer.');
         setSending(false);
       });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (sending) return;
+    setSending(true);
+    setError(null);
+
+    // Pour les mauvaises notes, on fait deux choses en parallèle :
+    // 1. Enregistrer le vote dans le backend (pour les stats)
+    // 2. Envoyer l'email au podologue via EmailJS
+
+    const commentaire = message ? 
+      (name ? `${name}: ${message}` : message) : 
+      (name ? `Commentaire de ${name}` : 'Aucun commentaire');
+
+    // 1. Enregistrer le vote dans le backend
+    let voteRegistered = false;
+    if (token && apiUrl) {
+      try {
+        const response = await fetch(`${apiUrl}/api/vote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            token: token,
+            note: rating,
+            commentaire: commentaire,
+          }),
+        });
+
+        if (response.ok) {
+          voteRegistered = true;
+        } else {
+          console.warn('Failed to register vote in backend');
+        }
+      } catch (err) {
+        console.warn('Error registering vote in backend:', err);
+      }
+    }
+
+    // 2. Envoyer l'email au podologue via EmailJS
+    if (serviceId && templateId && userId) {
+      sendViaEmailJS();
+    } else if (voteRegistered) {
+      // Si le vote est enregistré mais EmailJS pas configuré
+      setSent(true);
+      setSending(false);
+    } else {
+      setError('Configuration EmailJS manquante. Impossible d\'envoyer le message au podologue.');
+      setSending(false);
+    }
   };
 
   if (sent) {
@@ -81,6 +133,12 @@ function FeedbackForm({ rating }) {
             <span key={i} className="star done">★</span>
           ))}
         </div>
+
+        {error && (
+          <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
+            {error}
+          </div>
+        )}
 
          <input
            id="name"

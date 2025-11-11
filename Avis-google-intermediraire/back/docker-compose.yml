@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    container_name: avis-podologue-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATABASE_PATH=/app/data/avis.sqlite
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3001}
+      - MAIL_FROM=${MAIL_FROM}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - POD_PRAT_EMAIL=${POD_PRAT_EMAIL}
+      - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
+      - GOOGLE_TOKEN_PATH=/app/token.json
+      - GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-primary}
+      - CALENDAR_POLL_MINUTES=${CALENDAR_POLL_MINUTES:-15}
+      - GOOGLE_REVIEW_URL=${GOOGLE_REVIEW_URL}
+      - TOKEN_EXPIRATION_DAYS=${TOKEN_EXPIRATION_DAYS:-30}
+    volumes:
+      - ./data:/app/data
+      - ./credentials.json:/app/credentials.json:ro
+      - ./token.json:/app/token.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+
+

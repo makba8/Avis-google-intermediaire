@@ -1,14 +1,16 @@
-import { Controller, Post, Body, Param } from '@nestjs/common';
+import { Controller, Post, Body, Param, NotFoundException } from '@nestjs/common';
 import { RdvService } from './rdv.service';
+import { CreateRdvDto } from '../common/dtos/create-rdv.dto';
+import { Constants } from '../Ressources/Constants';
 
-@Controller('api/rdv')
+@Controller(Constants.API_PREFIX + '/rdv')
 export class RdvController {
   constructor(private rdvService: RdvService) {}
 
   @Post()
-  async create(@Body() body: { emailClient?: string; dateRdv: string }) {
+  async create(@Body() body: CreateRdvDto) {
     return this.rdvService.createFromCalendar({
-      calendarEventId: '',
+      calendarEventId: body.calendarEventId || '',
       emailClient: body.emailClient,
       dateRdv: new Date(body.dateRdv)
     });
@@ -16,6 +18,10 @@ export class RdvController {
 
   @Post(':id/send-mail')
   async sendMail(@Param('id') id: string) {
-    return this.rdvService.markMailSent(id);
+    const result = await this.rdvService.markMailSent(id);
+    if (!result) {
+      throw new NotFoundException(Constants.ERROR_RDV_NOT_FOUND);
+    }
+    return result;
   }
 }
