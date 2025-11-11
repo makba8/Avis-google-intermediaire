@@ -16,7 +16,6 @@ Ce projet permet de :
 
 ```
 projet/
-├── architecture.md          # Documentation technique complète
 ├── Avis-google-intermediraire/
 │   ├── back/               # Backend NestJS
 │   │   ├── src/
@@ -25,7 +24,8 @@ projet/
 │   │   │   ├── mail/      # Service d'envoi d'emails
 │   │   │   ├── google/    # Intégration Google Calendar
 │   │   │   ├── cron/      # Tâche cron de synchronisation
-│   │   │   └── config/    # Configuration
+│   │   │   ├── config/    # Configuration
+│   │   │   └── stats/     # Statistiques
 │   │   ├── scripts/       # Scripts utilitaires
 │   │   └── data/          # Base de données SQLite
 │   └── front/             # Frontend React
@@ -35,7 +35,7 @@ projet/
 └── README.md              # Ce fichier
 ```
 
-## 🚀 Installation rapide
+## 🚀 Installation
 
 ### Prérequis
 - Node.js 18+
@@ -50,14 +50,41 @@ npm install
 cp env.example .env
 ```
 
-Configurer `.env` avec vos paramètres (voir `back/README.md`).
+**Configuration du fichier `.env` :**
+
+```env
+# Serveur
+PORT=3000
+DATABASE_PATH=./data/avis.sqlite
+
+# Frontend (CORS + emails)
+FRONTEND_URL=http://localhost:3001
+
+# Email SMTP
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=username
+SMTP_PASS=password
+MAIL_FROM="Cabinet <no-reply@example.com>"
+POD_PRAT_EMAIL=podologue@example.com
+
+# Google Calendar
+GOOGLE_CREDENTIALS_PATH=./credentials.json
+GOOGLE_TOKEN_PATH=./token.json
+GOOGLE_CALENDAR_ID=primary
+CALENDAR_POLL_MINUTES=15
+
+# Google Avis
+GOOGLE_REVIEW_URL=https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID
+```
 
 **Configuration Google Calendar :**
 ```bash
-# 1. Placer credentials.json à la racine du backend
-# 2. Générer le token d'authentification
+# 1. Télécharger credentials.json depuis Google Cloud Console
+# 2. Placer credentials.json à la racine du backend
+# 3. Générer le token d'authentification
 npm run generate-google-token
-# 3. Tester la connexion
+# 4. Tester la connexion
 npm run test-google-calendar
 ```
 
@@ -76,7 +103,7 @@ npm install
 cp env.example .env
 ```
 
-Configurer `.env` :
+**Configuration du fichier `.env` :**
 ```env
 REACT_APP_API_URL=http://localhost:3000
 ```
@@ -125,14 +152,44 @@ Google Avis       commentaire
 
 ### Rendez-vous
 - `POST /api/rdv` - Créer un RDV manuellement
+  ```json
+  {
+    "emailClient": "patient@example.com",
+    "dateRdv": "2025-11-06T14:00:00Z"
+  }
+  ```
 - `POST /api/rdv/:id/send-mail` - Renvoyer l'email
 
 ### Votes
 - `POST /api/vote` - Soumettre un vote
+  ```json
+  {
+    "token": "hex-token-from-email",
+    "note": 5,
+    "commentaire": "Excellent service!"
+  }
+  ```
+  - Si note >= 4: `{ "redirectUrl": "https://..." }`
+  - Si note < 4: `{ "ok": true }` (email envoyé au podologue)
+
 - `GET /api/vote/validate?token=xxx` - Valider un token
+  ```json
+  {
+    "valid": true,
+    "alreadyVoted": false
+  }
+  ```
 
 ### Statistiques
 - `GET /api/stats` - Obtenir les statistiques globales
+  ```json
+  {
+    "totalRdv": 120,
+    "totalVotes": 90,
+    "averageRating": 4.6,
+    "badVotes": 5
+  }
+  ```
 
 ## 🗄️ Base de données
 
@@ -144,65 +201,12 @@ SQLite avec 2 tables :
 **vote** : Stocke les votes
 - id, token (unique), note (1-5), commentaire, dateVote
 
-## ⚙️ Configuration
-
-### Variables d'environnement Backend
-
-```env
-# Serveur
-PORT=3000
-DATABASE_PATH=./data/avis.sqlite
-
-# Frontend (CORS + emails)
-FRONTEND_URL=http://localhost:3001
-
-# Email SMTP
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=username
-SMTP_PASS=password
-MAIL_FROM="Cabinet <no-reply@example.com>"
-POD_PRAT_EMAIL=podologue@example.com
-
-# Google Calendar
-GOOGLE_CREDENTIALS_PATH=./credentials.json
-GOOGLE_TOKEN_PATH=./token.json
-GOOGLE_CALENDAR_ID=primary
-CALENDAR_POLL_MINUTES=15
-
-# Google Avis
-GOOGLE_REVIEW_URL=https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID
-```
-
-### Variables d'environnement Frontend
-
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
-
 ## 🧪 Tests
-
-### Documentation complète
-📖 **[TESTS.md](TESTS.md)** - Guide complet de tests avec toutes les réponses attendues
-
-### Collection Bruno (Recommandé)
-La collection Bruno inclut tous les tests API avec assertions automatiques :
-
-1. **Installer Bruno** : https://www.usebruno.com/
-2. **Ouvrir la collection** : Dossier `bruno-collection/`
-3. **Exécuter les tests** : Runner dans Bruno
-
-📂 Voir [bruno-collection/README.md](bruno-collection/README.md)
 
 ### Tests manuels
 
 **Backend :**
 ```bash
-cd Avis-google-intermediraire/back
-
-# Test Google Calendar
-npm run test-google-calendar
-
 # Test création RDV
 curl -X POST http://localhost:3000/api/rdv \
   -H "Content-Type: application/json" \
@@ -215,6 +219,12 @@ curl http://localhost:3000/api/stats
 **Frontend :**
 ```
 http://localhost:3001/feedback?token=VOTRE_TOKEN
+```
+
+### Tests Google Calendar
+```bash
+cd Avis-google-intermediraire/back
+npm run test-google-calendar
 ```
 
 ## 🐳 Déploiement
@@ -231,6 +241,17 @@ docker run -d -p 3000:3000 --env-file .env avis-backend
 - **Frontend** : Netlify, Vercel, GitHub Pages
 - **Production** : Considérer PostgreSQL au lieu de SQLite pour la scalabilité
 
+### Variables d'environnement en production
+
+**Backend :**
+- Configurer toutes les variables du `.env` sur la plateforme
+- S'assurer que `FRONTEND_URL` pointe vers l'URL de production
+- Utiliser HTTPS pour toutes les URLs
+
+**Frontend :**
+- Définir `REACT_APP_API_URL` avec l'URL du backend en production
+- Rebuild après modification : `npm run build`
+
 ## 🔒 Sécurité
 
 ⚠️ **Ne JAMAIS committer :**
@@ -244,12 +265,6 @@ docker run -d -p 3000:3000 --env-file .env avis-backend
 - Configurer un rate limiter
 - Sauvegarder régulièrement la base de données
 - Protéger les endpoints admin avec authentification
-
-## 📚 Documentation complète
-
-- **Architecture technique** : Voir `architecture.md`
-- **Backend** : Voir `Avis-google-intermediraire/back/README.md`
-- **Frontend** : Voir `Avis-google-intermediraire/front/README.md`
 
 ## 🆘 Dépannage
 
@@ -277,6 +292,46 @@ npm run generate-google-token
 - Vérifier que `FRONTEND_URL` est correct dans `.env` backend
 - Vérifier que le backend est démarré
 
+### "Database is locked"
+- SQLite ne supporte qu'une connexion d'écriture à la fois
+- Fermer les autres processus Node
+- En production, considérer PostgreSQL
+
+### Cron ne s'exécute pas
+- Vérifier que `CALENDAR_POLL_MINUTES` est configuré
+- Vérifier les logs du backend
+- Tester manuellement la connexion Google Calendar
+
+## 📚 Documentation technique
+
+### Stack technique
+- **Backend** : NestJS, TypeORM, SQLite, googleapis, Nodemailer
+- **Frontend** : React, fetch API
+- **Base de données** : SQLite (développement), PostgreSQL recommandé (production)
+
+### Structure du code
+
+**Backend :**
+- Modules NestJS modulaires (rdv, vote, mail, google, cron)
+- DTOs avec validation (class-validator)
+- Services injectables
+- Cron automatique pour synchronisation Google Calendar
+
+**Frontend :**
+- Composants React fonctionnels
+- Gestion d'état locale
+- Validation de token avant affichage
+- Redirection conditionnelle selon la note
+
+### Fonctionnement du Cron
+
+Le service cron s'exécute toutes les `CALENDAR_POLL_MINUTES` minutes (défaut: 15) pour :
+1. Récupérer les événements terminés depuis Google Calendar
+2. Extraire l'email du patient des participants
+3. Créer une entrée RDV locale si elle n'existe pas
+4. Envoyer automatiquement un email avec un lien unique
+5. Éviter les doublons via `calendarEventId`
+
 ## 🎯 Roadmap
 
 ### Version actuelle (Intermédiaire)
@@ -298,16 +353,6 @@ npm run generate-google-token
 
 Projet privé - Tous droits réservés
 
-## 👤 Support
-
-Pour toute question, consulter :
-1. Le fichier `architecture.md` (spécifications complètes)
-2. Les README des sous-projets (back/ et front/)
-3. Les logs du serveur backend
-
 ---
-
-**Note :** Ce projet est conçu pour être utilisé par une IA (Claude, GPT, Cursor, etc.) pour génération et maintenance de code. Voir `architecture.md` pour les conventions détaillées.
-
 
 
