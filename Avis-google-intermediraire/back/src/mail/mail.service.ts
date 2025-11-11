@@ -23,7 +23,7 @@ export class MailService {
       this.logger.warn(`SMTP_PASS: ${process.env.SMTP_PASS ? '***' : 'NON DÉFINI'}`);
     }
     
-    this.transporter = nodemailer.createTransport({
+    const smtpConfig: any = {
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
@@ -31,8 +31,21 @@ export class MailService {
       secure: Number(process.env.SMTP_PORT) === 465, // true pour le port 465 (SSL)
       tls: {
         rejectUnauthorized: false // Accepter les certificats auto-signés (pour dev/test)
-      }
-    });
+      },
+      // Timeouts augmentés pour les connexions lentes (cloud)
+      connectionTimeout: 60000, // 60 secondes
+      greetingTimeout: 30000, // 30 secondes
+      socketTimeout: 60000, // 60 secondes
+    };
+    
+    // Options de pool pour les environnements cloud
+    if (process.env.SMTP_POOL === 'true') {
+      smtpConfig.pool = true;
+      smtpConfig.maxConnections = 1;
+      smtpConfig.maxMessages = 3;
+    }
+    
+    this.transporter = nodemailer.createTransport(smtpConfig);
     
     // Vérifier la connexion SMTP au démarrage (de manière asynchrone pour ne pas bloquer)
     this.verifyConnection().catch(err => {
