@@ -14,11 +14,40 @@ export class MailService {
     // Charger le chemin du logo pour l'utiliser comme pièce jointe
     this.logoPath = this.loadLogo();
     
+    // Vérifier la configuration SMTP
+    if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      this.logger.warn('⚠️ Configuration SMTP incomplète. Les emails ne pourront pas être envoyés.');
+      this.logger.warn(`SMTP_HOST: ${process.env.SMTP_HOST || 'NON DÉFINI'}`);
+      this.logger.warn(`SMTP_PORT: ${process.env.SMTP_PORT || 'NON DÉFINI'}`);
+      this.logger.warn(`SMTP_USER: ${process.env.SMTP_USER || 'NON DÉFINI'}`);
+      this.logger.warn(`SMTP_PASS: ${process.env.SMTP_PASS ? '***' : 'NON DÉFINI'}`);
+    }
+    
     this.transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT),
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      // Options supplémentaires pour améliorer la compatibilité
+      secure: Number(process.env.SMTP_PORT) === 465, // true pour le port 465 (SSL)
+      tls: {
+        rejectUnauthorized: false // Accepter les certificats auto-signés (pour dev/test)
+      }
     });
+    
+    // Vérifier la connexion SMTP au démarrage (de manière asynchrone pour ne pas bloquer)
+    this.verifyConnection().catch(err => {
+      this.logger.error(`Erreur lors de la vérification SMTP: ${err.message}`);
+    });
+  }
+  
+  private async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      this.logger.log('✅ Connexion SMTP vérifiée avec succès');
+    } catch (error: any) {
+      this.logger.error(`❌ Échec de la vérification de la connexion SMTP: ${error.message}`);
+      this.logger.error('Les emails ne pourront pas être envoyés jusqu\'à ce que la configuration SMTP soit corrigée.');
+    }
   }
 
   private loadLogo(): string | null {
@@ -55,7 +84,7 @@ export class MailService {
   }
 
   async sendFeedbackMail(to: string, token: string) {
-    this.logger.error(`Envoi de l'email de feedback à ${to} avec le token ${token}`);
+    this.logger.log(`Envoi de l'email de feedback à ${to} avec le token ${token}`);
     const link = Constants.getFeedbackUrl(token);
     const year = new Date().getFullYear();
   
@@ -142,13 +171,14 @@ export class MailService {
       this.logger.log(`Logo ajouté comme pièce jointe: ${this.logoPath}`);
     }
 
-    await this.transporter.sendMail({
-      from: Constants.EMAIL_FROM,
-      to,
-      subject: Constants.EMAIL_SUBJECT_FEEDBACK,
-      html,
-      attachments,
-      text: `Bonjour,
+    try {
+      const info = await this.transporter.sendMail({
+        from: Constants.EMAIL_FROM,
+        to,
+        subject: Constants.EMAIL_SUBJECT_FEEDBACK,
+        html,
+        attachments,
+        text: `Bonjour,
   
   Merci d'être venu(e) à votre rendez-vous chez ${Constants.PODOLOGUE_NAME}.
   Votre avis compte beaucoup pour nous.
@@ -160,7 +190,18 @@ export class MailService {
   ${Constants.PODOLOGUE_NAME || ''}
   ${process.env.CLINIC_ADDRESS || ''}
   `
-    });
+      });
+      this.logger.log(`✅ Email envoyé avec succès à ${to}. Message ID: ${info.messageId}`);
+      return info;
+    } catch (error: any) {
+      this.logger.error(`❌ Erreur lors de l'envoi de l'email à ${to}: ${error.message}`);
+      this.logger.error(`Détails de l'erreur: ${error.stack || JSON.stringify(error)}`);
+      // Vérifier la configuration SMTP
+      if (error.code === 'EAUTH' || error.code === 'ECONNECTION') {
+        this.logger.error(`Vérifiez votre configuration SMTP: HOST=${process.env.SMTP_HOST}, PORT=${process.env.SMTP_PORT}, USER=${process.env.SMTP_USER}`);
+      }
+      throw error; // Re-throw pour que l'appelant puisse gérer l'erreur
+    }
   }
   
 

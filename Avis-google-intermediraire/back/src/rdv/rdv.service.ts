@@ -37,8 +37,10 @@ export class RdvService {
         await this.mailService.sendFeedbackMail(payload.emailClient, token);
         rdv.mailEnvoye = true;
         await this.rdvRepo.save(rdv);
-      } catch (err) {
-        // log + laisser mailEnvoye false
+      } catch (err: any) {
+        // Log l'erreur mais continue l'exécution
+        console.error(`Erreur lors de l'envoi de l'email pour le RDV ${rdv.id}:`, err.message);
+        // mailEnvoye reste false, l'email pourra être renvoyé plus tard
       }
     }
     return rdv;

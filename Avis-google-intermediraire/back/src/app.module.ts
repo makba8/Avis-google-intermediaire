@@ -16,9 +16,10 @@ import { Constants } from './Ressources/Constants';
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: process.env.DATABASE_PATH,
+      database: process.env.DATABASE_PATH || '/app/data/avis.sqlite',
       entities: [Rdv, Vote],
       synchronize: true,
+      logging: process.env.NODE_ENV === 'development', // Log les requêtes SQL en dev
     }),
     RdvModule,
     VoteModule,
