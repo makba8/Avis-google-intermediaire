@@ -27,11 +27,33 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Copy necessary files
-COPY --from=builder /app/src/Ressources ./src/Ressources
+# Verify build output structure
+RUN echo "=== Checking dist structure ===" && \
+    ls -la /app/dist/ && \
+    echo "=== Checking for main.js ===" && \
+    (test -f /app/dist/main.js && echo "Found dist/main.js" || echo "dist/main.js not found") && \
+    (test -f /app/dist/src/main.js && echo "Found dist/src/main.js" || echo "dist/src/main.js not found") && \
+    echo "=== Build verification complete ==="
 
 # Create data directory for SQLite with proper permissions
 RUN mkdir -p /app/data && chmod 755 /app/data
+
+# Create startup script that finds the correct main.js location
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'if [ -f dist/src/main.js ]; then' >> /app/start.sh && \
+    echo '  echo "Starting from dist/src/main.js"' >> /app/start.sh && \
+    echo '  exec node dist/src/main.js' >> /app/start.sh && \
+    echo 'elif [ -f dist/main.js ]; then' >> /app/start.sh && \
+    echo '  echo "Starting from dist/main.js"' >> /app/start.sh && \
+    echo '  exec node dist/main.js' >> /app/start.sh && \
+    echo 'else' >> /app/start.sh && \
+    echo '  echo "ERROR: main.js not found!"' >> /app/start.sh && \
+    echo '  echo "Contents of dist/:"' >> /app/start.sh && \
+    echo '  ls -la dist/ || echo "dist/ does not exist"' >> /app/start.sh && \
+    echo '  echo "Contents of dist/src/:"' >> /app/start.sh && \
+    echo '  ls -la dist/src/ 2>/dev/null || echo "dist/src/ does not exist"' >> /app/start.sh && \
+    echo '  exit 1' >> /app/start.sh && \
+    chmod +x /app/start.sh
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -52,7 +74,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/stats', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
 # Start the application
-CMD ["node", "dist/main.js"]
+CMD ["/app/start.sh"]
 
 
 
