@@ -110,7 +110,7 @@ function FeedbackForm({ rating, token, apiUrl }) {
     return (
       <div className="form-container">
         <div className="feedback-form sent">
-          <svg className="sent-check" xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="sent-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 6L9 17l-5-5" />
           </svg>
           <h2>Merci, votre avis a bien été envoyé</h2>

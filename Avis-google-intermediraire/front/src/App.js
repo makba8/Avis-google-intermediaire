@@ -89,7 +89,7 @@ function App() {
     return (
       <div className="app">
         <Header />
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div className="loading-container">
           <p>Chargement...</p>
         </div>
       </div>
@@ -100,7 +100,7 @@ function App() {
     return (
       <div className="app">
         <Header />
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>
+        <div className="error-container">
           <p>{error}</p>
         </div>
       </div>
@@ -111,7 +111,7 @@ function App() {
     return (
       <div className="app">
         <Header />
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
+        <div className="already-voted-container">
           <h2>Merci !</h2>
           <p>Vous avez déjà soumis votre avis pour ce rendez-vous.</p>
         </div>
