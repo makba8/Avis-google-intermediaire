@@ -6,7 +6,7 @@ dotenv.config();
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
-  database: process.env.DATABASE_PATH || './data/db.sqlite',
+  database: process.env.DATABASE_PATH || '',
   entities: [Rdv, Vote],
   synchronize: true
 });

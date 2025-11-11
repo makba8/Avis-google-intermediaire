@@ -55,6 +55,7 @@ export class MailService {
   }
 
   async sendFeedbackMail(to: string, token: string) {
+    this.logger.error(`Envoi de l'email de feedback à ${to} avec le token ${token}`);
     const link = Constants.getFeedbackUrl(token);
     const year = new Date().getFullYear();
   

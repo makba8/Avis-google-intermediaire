@@ -11,7 +11,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_PATH=/app/data/avis.sqlite
+      - DATABASE_PATH=${DATABASE_PATH}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - MAIL_FROM=${MAIL_FROM}
       - SMTP_HOST=${SMTP_HOST}
