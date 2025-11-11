@@ -6,12 +6,12 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build && npm run copy:assets",
+    "build": "npx nest build && npm run copy:assets",
     "copy:assets": "node -e \"require('fs').mkdirSync('dist/src/Ressources', {recursive: true}); require('fs').copyFileSync('src/Ressources/logo.png', 'dist/src/Ressources/logo.png');\"",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start": "npx nest start",
+    "start:dev": "npx nest start --watch",
+    "start:debug": "npx nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
@@ -22,6 +22,7 @@
     "generate-google-token": "ts-node scripts/get_google_token.ts",
     "test-google-calendar": "ts-node scripts/test_google_calendar.ts"
   },
+  
   "dependencies": {
     "@nestjs/common": "^11.1.8",
     "@nestjs/config": "^4.0.0",
