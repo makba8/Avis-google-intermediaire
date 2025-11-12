@@ -9,11 +9,16 @@ import { CronModule } from './cron/cron.module';
 import { StatsController } from './stats/stats.controller';
 import { Rdv } from './rdv/rdv.entity';
 import { Vote } from './vote/vote.entity';
-import { Constants } from './Ressources/Constants';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
     ConfigModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'Ressources'),
+      serveRoot: '/static', 
+    }),
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: process.env.DATABASE_PATH || '/app/data/avis.sqlite',

@@ -12,8 +12,9 @@ export class MailService {
   private readonly logger = new Logger(MailService.name);
 
   constructor() {
-    // Charger le chemin du logo pour l'utiliser comme pièce jointe
-    this.logoPath = Constants.LOGO;
+    this.logoPath = process.env.NODE_ENV === 'production' 
+      ? (process.env.LOGO || '')
+      : Constants.LOGO;
     
     // Vérifier la configuration SMTP
     if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
