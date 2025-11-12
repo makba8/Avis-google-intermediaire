@@ -12,12 +12,9 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_PATH=${DATABASE_PATH}
-      # Supabase Configuration (prioritaire si défini)
+      # Supabase Configuration (production - utilise Supabase JS)
       - SUPABASE_URL=${SUPABASE_URL}
-      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
-      # PostgreSQL classique (alternative)
-      - DATABASE_URL=${DATABASE_URL}
-      - DATABASE_SSL=${DATABASE_SSL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
       - MAIL_FROM=${MAIL_FROM}
       - SMTP_HOST=${SMTP_HOST}

@@ -1,18 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Rdv } from './rdv.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import { MailService } from '../mail/mail.service';
+import { SupabaseService } from '../supabase/supabase.service';
 import { Constants } from '../Ressources/Constants';
 
 @Injectable()
 export class RdvService {
+  private useSupabase: boolean;
+
   constructor(
-    @InjectRepository(Rdv) private rdvRepo: Repository<Rdv>,
-    private mailService: MailService
-  ) {}
+    @Optional() @InjectRepository(Rdv) private rdvRepo: Repository<Rdv> | null,
+    private mailService: MailService,
+    private supabaseService: SupabaseService
+  ) {
+    this.useSupabase = this.supabaseService.isEnabled();
+  }
 
   private genToken() {
     // Génère un token de 24 bytes = 48 caractères hex
@@ -20,23 +26,47 @@ export class RdvService {
   }
 
   async findByCalendarEventId(eventId: string) {
+    if (this.useSupabase) {
+      return this.supabaseService.findRdvByCalendarEventId(eventId);
+    }
+    if (!this.rdvRepo) throw new Error('TypeORM non initialisé');
     return this.rdvRepo.findOne({ where: { calendarEventId: eventId } });
   }
 
   async createFromCalendar(payload: { calendarEventId: string; emailClient?: string; dateRdv: Date }) {
     const token = this.genToken();
-    const rdv = this.rdvRepo.create({
-      emailClient: payload.emailClient || '',
-      dateRdv: payload.dateRdv,
-      token,
-      calendarEventId: payload.calendarEventId
-    });
-    await this.rdvRepo.save(rdv);
+    
+    let rdv: any;
+    
+    if (this.useSupabase) {
+      rdv = await this.supabaseService.createRdv({
+        emailClient: payload.emailClient || '',
+        dateRdv: payload.dateRdv,
+        token,
+        calendarEventId: payload.calendarEventId,
+        mailEnvoye: false,
+      });
+    } else {
+      if (!this.rdvRepo) throw new Error('TypeORM non initialisé');
+      rdv = this.rdvRepo.create({
+        emailClient: payload.emailClient || '',
+        dateRdv: payload.dateRdv,
+        token,
+        calendarEventId: payload.calendarEventId
+      });
+      await this.rdvRepo.save(rdv);
+    }
+
     if (payload.emailClient) {
       try {
         await this.mailService.sendFeedbackMail(payload.emailClient, token);
-        rdv.mailEnvoye = true;
-        await this.rdvRepo.save(rdv);
+        if (this.useSupabase) {
+          await this.supabaseService.updateRdv(rdv.id, { mailEnvoye: true });
+        } else {
+          if (!this.rdvRepo) throw new Error('TypeORM non initialisé');
+          rdv.mailEnvoye = true;
+          await this.rdvRepo.save(rdv);
+        }
       } catch (err: any) {
         // Log l'erreur mais continue l'exécution
         console.error(`Erreur lors de l'envoi de l'email pour le RDV ${rdv.id}:`, err.message);
@@ -47,6 +77,10 @@ export class RdvService {
   }
 
   async markMailSent(rdvId: string) {
+    if (this.useSupabase) {
+      return this.supabaseService.updateRdv(rdvId, { mailEnvoye: true });
+    }
+    if (!this.rdvRepo) throw new Error('TypeORM non initialisé');
     const r = await this.rdvRepo.findOne({ where: { id: rdvId } });
     if (!r) return null;
     r.mailEnvoye = true;
