@@ -113,7 +113,7 @@ export class MailService {
     <body>
       <div class="container">
         <div class="header">
-          ${this.logoPath ? `<img src="cid:logo" alt="${Constants.PODOLOGUE_NAME}" class="logo" style="max-height: 48px; display: block; margin: 0 auto 8px;" />` : ''}
+          ${this.logoPath ? `<img src="${this.logoPath}" alt="${Constants.PODOLOGUE_NAME}" class="logo" style="max-height: 48px; display: block; margin: 0 auto 8px;" />` : ''}
           <div class="muted">Merci pour votre confiance</div>
         </div>
   
@@ -176,26 +176,26 @@ ${process.env.CLINIC_ADDRESS || ''}
     try {
       // Pour Resend, on convertit le logo en base64 et on l'inclut directement dans le HTML
       // Cela évite qu'il soit en pièce jointe
-      let htmlWithLogo = html;
-      if (this.logoPath && fs.existsSync(this.logoPath)) {
-        const logoBuffer = fs.readFileSync(this.logoPath);
-        const logoBase64 = logoBuffer.toString('base64');
-        const logoDataUrl = `data:image/png;base64,${logoBase64}`;
+      // let htmlWithLogo = html;
+      // if (this.logoPath && fs.existsSync(this.logoPath)) {
+      //   const logoBuffer = fs.readFileSync(this.logoPath);
+      //   const logoBase64 = logoBuffer.toString('base64');
+      //   const logoDataUrl = `data:image/png;base64,${logoBase64}`;
         
-        // Remplacer cid:logo par l'image base64 inline
-        htmlWithLogo = html.replace(
-          'src="cid:logo"',
-          `src="${logoDataUrl}"`
-        );
-        this.logger.log(`Logo intégré inline dans l'email (base64)`);
-      }
+      //   // Remplacer cid:logo par l'image base64 inline
+      //   htmlWithLogo = html.replace(
+      //     'src="cid:logo"',
+      //     `src="${logoDataUrl}"`
+      //   );
+      //   this.logger.log(`Logo intégré inline dans l'email (base64)`);
+      // }
 
       // Resend retourne { data, error }
       const { data, error } = await resend.emails.send({
         from: fromEmail,
         to: ['arthur.cariou88@gmail.com'], 
         subject: Constants.EMAIL_SUBJECT_FEEDBACK,
-        html: htmlWithLogo,
+        html: html,
         text,
       });
 
