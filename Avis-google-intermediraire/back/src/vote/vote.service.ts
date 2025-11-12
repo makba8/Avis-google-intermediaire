@@ -16,7 +16,8 @@ export class VoteService {
     @Optional() private dataSource: DataSource | null,
     private supabaseService: SupabaseService
   ) {
-    this.useSupabase = this.supabaseService.isEnabled();
+    // Vérifier si Supabase est configuré (via variables d'env ou service)
+    this.useSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) || this.supabaseService.isEnabled();
   }
 
   async createVote(token: string, note: number, commentaire?: string) {

@@ -17,7 +17,8 @@ export class RdvService {
     private mailService: MailService,
     private supabaseService: SupabaseService
   ) {
-    this.useSupabase = this.supabaseService.isEnabled();
+    // Vérifier si Supabase est configuré (via variables d'env ou service)
+    this.useSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) || this.supabaseService.isEnabled();
   }
 
   private genToken() {
@@ -29,7 +30,14 @@ export class RdvService {
     if (this.useSupabase) {
       return this.supabaseService.findRdvByCalendarEventId(eventId);
     }
-    if (!this.rdvRepo) throw new Error('TypeORM non initialisé');
+    if (!this.rdvRepo) {
+      // Si TypeORM n'est pas disponible, essayer Supabase comme fallback
+      if (this.supabaseService.isEnabled()) {
+        this.useSupabase = true;
+        return this.supabaseService.findRdvByCalendarEventId(eventId);
+      }
+      throw new Error('TypeORM non initialisé et Supabase non disponible');
+    }
     return this.rdvRepo.findOne({ where: { calendarEventId: eventId } });
   }
 
