@@ -13,34 +13,60 @@ export class CalendarCronService {
 
   @Cron(`* * * * *`)
   async handleCron() {
-    const now = new Date();
-    const lookback = addMinutes(now, -60 * 24); // 24 heures
-    const timeMin = lookback.toISOString();
-    const timeMax = now.toISOString();
+    try {
+      const now = new Date();
+      if (isNaN(now.getTime())) {
+        this.logger.error('Date actuelle invalide');
+        return;
+      }
 
-    this.logger.log(`Polling Google Calendar from ${timeMin} to ${timeMax}`);
-    const events = await this.google.listEvents(timeMin, timeMax);
-    for (const ev of events) {
-      if (!ev.end || !ev.start) continue;
+      const lookback = addMinutes(now, -60 * 24); // 24 heures
+      if (isNaN(lookback.getTime())) {
+        this.logger.error('Date lookback invalide');
+        return;
+      }
 
-      const endDate = new Date(ev.end.dateTime);
-      if (endDate > now) continue; // rendez-vous pas encore terminés
+      const timeMin = lookback.toISOString();
+      const timeMax = now.toISOString();
 
-      // chercher email dans attendees
-      const attendee = (ev.attendees || []).find(a => a.email);
-      const email = attendee?.email ?? null;
+      this.logger.log(`Polling Google Calendar from ${timeMin} to ${timeMax}`);
+      const events = await this.google.listEvents(timeMin, timeMax);
+      
+      for (const ev of events) {
+        if (!ev.end || !ev.start) continue;
 
-      // si déjà connu, skip
-      const exists = await this.rdvService.findByCalendarEventId(ev.id);
-    
-      if (exists) continue;
+        // Vérifier que dateTime existe et est valide
+        if (!ev.end.dateTime) {
+          this.logger.warn(`Événement ${ev.id} sans date de fin`);
+          continue;
+        }
 
-      // créer rdv local et potentiellement envoyer mail
-      await this.rdvService.createFromCalendar({
-        calendarEventId: ev.id,
-        emailClient: "arthur.cariou88@gmail.com",
-        dateRdv: endDate
-      });
+        const endDate = new Date(ev.end.dateTime);
+        if (isNaN(endDate.getTime())) {
+          this.logger.warn(`Date invalide pour l'événement ${ev.id}: ${ev.end.dateTime}`);
+          continue;
+        }
+
+        if (endDate > now) continue; // rendez-vous pas encore terminés
+
+        // chercher email dans attendees
+        const attendee = (ev.attendees || []).find(a => a.email);
+        // const email = attendee?.email ?? null;
+
+        // si déjà connu, skip
+        const exists = await this.rdvService.findByCalendarEventId(ev.id);
+      
+        if (exists) continue;
+
+        // créer rdv local et potentiellement envoyer mail
+        await this.rdvService.createFromCalendar({
+          calendarEventId: ev.id,
+          emailClient: "arthur.cariou88@gmail.com",
+          dateRdv: endDate
+        });
+      }
+    } catch (error: any) {
+      this.logger.error(`Erreur dans handleCron: ${error.message}`, error.stack);
     }
   }
 }

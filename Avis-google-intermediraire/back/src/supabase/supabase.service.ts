@@ -58,6 +58,11 @@ export class SupabaseService implements OnModuleInit {
   }) {
     if (!this.client) throw new Error('Supabase non initialisé');
     
+    // Valider que la date est valide avant de la convertir
+    if (!rdv.dateRdv || isNaN(rdv.dateRdv.getTime())) {
+      throw new Error(`Date invalide pour createRdv: ${rdv.dateRdv}`);
+    }
+    
     const { data, error } = await this.client
       .from('rdv')
       .insert({
@@ -88,6 +93,10 @@ export class SupabaseService implements OnModuleInit {
     
     const updateData: any = { ...updates };
     if (updateData.dateRdv) {
+      // Valider que la date est valide avant de la convertir
+      if (isNaN(updateData.dateRdv.getTime())) {
+        throw new Error(`Date invalide pour updateRdv: ${updateData.dateRdv}`);
+      }
       updateData.dateRdv = updateData.dateRdv.toISOString();
     }
     
@@ -157,6 +166,11 @@ export class SupabaseService implements OnModuleInit {
     dateVote: Date;
   }) {
     if (!this.client) throw new Error('Supabase non initialisé');
+    
+    // Valider que la date est valide avant de la convertir
+    if (!vote.dateVote || isNaN(vote.dateVote.getTime())) {
+      throw new Error(`Date invalide pour createVote: ${vote.dateVote}`);
+    }
     
     const { data, error } = await this.client
       .from('vote')
