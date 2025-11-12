@@ -6,8 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "npx nest build && npm run copy:assets",
-    "copy:assets": "node -e \"require('fs').mkdirSync('dist/src/Ressources', {recursive: true}); require('fs').copyFileSync('src/Ressources/logo.png', 'dist/src/Ressources/logo.png');\"",
+   "scripts": {
+  "build": "npx nest build && npm run copy:assets",
+  "copy:assets": "node -e \"require('fs').mkdirSync('dist/Ressources', {recursive: true}); require('fs').copyFileSync('src/Ressources/logo.png', 'dist/Ressources/logo.png');\""
+},
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "npx nest start",
     "start:dev": "npx nest start --watch",
