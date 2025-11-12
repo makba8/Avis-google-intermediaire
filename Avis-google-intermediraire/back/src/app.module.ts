@@ -20,18 +20,19 @@ import { join } from 'path';
       serveRoot: '/static', 
     }),
     TypeOrmModule.forRoot(
-      process.env.NODE_ENV === 'production' && process.env.DATABASE_URL
+      process.env.SUPABASE_URL || (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL)
         ? {
-            // Configuration PostgreSQL pour la production
+            // Configuration Supabase/PostgreSQL pour la production
             type: 'postgres',
-            url: process.env.DATABASE_URL,
+            url: process.env.SUPABASE_DB_URL || process.env.DATABASE_URL,
             entities: [Rdv, Vote],
             synchronize: true,
-            logging: false, // Désactiver les logs SQL en production
-            ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+            logging: process.env.NODE_ENV === 'development',
+            // Supabase nécessite SSL
+            ssl: process.env.SUPABASE_URL ? { rejectUnauthorized: false } : (process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false),
           }
         : {
-            // Configuration SQLite pour le développement
+            // Configuration SQLite pour le développement local
             type: 'sqlite',
             database: process.env.DATABASE_PATH || '/app/data/avis.sqlite',
             entities: [Rdv, Vote],
