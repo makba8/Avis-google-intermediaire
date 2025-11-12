@@ -7,7 +7,7 @@ export class Rdv {
   @Column({ nullable: true })
   emailClient: string;
 
-  @Column({ type: 'datetime', nullable: false })
+  @Column({ type: 'timestamp', nullable: false })
   dateRdv: Date;
 
   @Column({ default: false })

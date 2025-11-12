@@ -19,13 +19,26 @@ import { join } from 'path';
       rootPath: join(__dirname, '..', 'Ressources'),
       serveRoot: '/static', 
     }),
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: process.env.DATABASE_PATH || '/app/data/avis.sqlite',
-      entities: [Rdv, Vote],
-      synchronize: true,
-      logging: process.env.NODE_ENV === 'development', // Log les requêtes SQL en dev
-    }),
+    TypeOrmModule.forRoot(
+      process.env.NODE_ENV === 'production' && process.env.DATABASE_URL
+        ? {
+            // Configuration PostgreSQL pour la production
+            type: 'postgres',
+            url: process.env.DATABASE_URL,
+            entities: [Rdv, Vote],
+            synchronize: true,
+            logging: false, // Désactiver les logs SQL en production
+            ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
+          }
+        : {
+            // Configuration SQLite pour le développement
+            type: 'sqlite',
+            database: process.env.DATABASE_PATH || '/app/data/avis.sqlite',
+            entities: [Rdv, Vote],
+            synchronize: true,
+            logging: process.env.NODE_ENV === 'development',
+          }
+    ),
     RdvModule,
     VoteModule,
     MailModule,

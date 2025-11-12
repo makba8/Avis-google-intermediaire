@@ -14,7 +14,7 @@ export class Vote {
   @Column({ type: 'text', nullable: true })
   commentaire: string | null;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'timestamp' })
   dateVote: Date;
 
   @CreateDateColumn() createdAt: Date;
