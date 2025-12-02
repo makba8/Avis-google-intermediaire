@@ -13,6 +13,9 @@ function FeedbackForm({ rating, token, apiUrl }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
+  const [dateRdv, setDateRdv] = useState('');
+  const [email, setEmail] = useState('');
+
   const adjustHeight = () => {
     const ta = messageRef.current;
     if (ta) {
@@ -33,24 +36,32 @@ function FeedbackForm({ rating, token, apiUrl }) {
     setName(e.target.value);
   };
 
-  const sendViaEmailJS = () => {
-    const templateParams = {
-      name: name === '' ? 'Anonyme' : name,
-      note: rating,
-      message: message,
-    };
-
-    emailjs
-      .send(serviceId, templateId, templateParams, userId)
-      .then(() => {
-        setSent(true);
-        setSending(false);
-      })
-      .catch((err) => {
-        console.error('EmailJS error:', err);
-        setError('Erreur lors de l\'envoi par email. Veuillez réessayer.');
-        setSending(false);
+  const sendViaEmailJS = async () => {
+    try {
+      await fetch(`${apiUrl}/api/vote/${token}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      const data = await res.json();
+
+      const templateParams = {
+        name: name === '' ? 'Anonyme' : name,
+        note: rating,
+        email: data.email || '',
+        dateRdv: data.dateRdv ? new Date(data.dateRdv) : '',
+        message: message,
+      };
+
+      await emailjs.send(serviceId, templateId, templateParams, userId);
+      setSent(true);
+    } catch (err) {
+      console.error('EmailJS or fetch error:', err);
+      setError('Erreur lors de l\'envoi par email. Veuillez réessayer.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleSubmit = async (e) => {

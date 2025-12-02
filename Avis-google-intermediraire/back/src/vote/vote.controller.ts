@@ -5,7 +5,7 @@ import { Constants } from '../Ressources/Constants';
 
 @Controller(Constants.API_PREFIX + '/vote')
 export class VoteController {
-  constructor(private voteService: VoteService) {}
+  constructor(private readonly voteService: VoteService) {}
 
   @Post()
   async vote(@Body() body: CreateVoteDto) {
@@ -17,5 +17,10 @@ export class VoteController {
   @Get('validate')
   async validate(@Query('token') token: string) {
     return this.voteService.validateToken(token);
+  }
+
+  @Get()
+  async redirectToApiVote(@Query('token') token: string) {
+     return this.voteService.getConfInformation(token);
   }
 }

@@ -92,7 +92,30 @@ export class VoteService {
       return { valid: true, alreadyVoted: !!existingVote };
     }
   }
-
+ 
+  async getConfInformation(token: string) {
+    if (this.useSupabase) {
+      const rdv = await this.supabaseService.findRdvByToken(token);
+      if (!rdv) {
+        throw new BadRequestException(Constants.ERROR_INVALID_TOKEN);
+      }
+      return {
+        email: rdv.email,
+        dateRdv: rdv.dateRdv
+      };
+    }
+    else {
+      if (!this.rdvRepo) throw new Error('Rdv Repository non initialisé');
+      const rdv = await this.rdvRepo.findOne({ where: { token } });
+      if (!rdv) {
+        throw new BadRequestException(Constants.ERROR_INVALID_TOKEN);
+      }
+      return {
+        email: rdv.emailClient,
+        dateRdv: rdv.dateRdv
+      };
+    }
+  }
   async getStats() {
     if (this.useSupabase) {
       const totalRdv = await this.supabaseService.countRdv();
