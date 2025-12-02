@@ -13,9 +13,6 @@ function FeedbackForm({ rating, token, apiUrl }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
-  const [dateRdv, setDateRdv] = useState('');
-  const [email, setEmail] = useState('');
-
   const adjustHeight = () => {
     const ta = messageRef.current;
     if (ta) {
@@ -38,19 +35,28 @@ function FeedbackForm({ rating, token, apiUrl }) {
 
   const sendViaEmailJS = async () => {
     try {
-      await fetch(`${apiUrl}/api/vote/${token}`, {
+      const result = await fetch(`${apiUrl}/api/vote/${token}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      const data = await res.json();
+      const data = await result.json();
+      const formattedDateRdv = (() => {
+        if (!data.dateRdv) return '';
+        const d = new Date(data.dateRdv);
+        if (isNaN(d)) return '';
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const yyyy = d.getFullYear();
+        return `${dd}-${mm}-${yyyy}`;
+      })();
 
       const templateParams = {
         name: name === '' ? 'Anonyme' : name,
         note: rating,
         email: data.email || '',
-        dateRdv: data.dateRdv ? new Date(data.dateRdv) : '',
+        dateRdv: formattedDateRdv,
         message: message,
       };
 

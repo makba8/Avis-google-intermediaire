@@ -45,28 +45,27 @@ export class VoteService {
         redirect: Constants.isPositiveRating(note) ? Constants.getGoogleReviewUrl() : null 
       };
     } else {
-      // Transaction pour éviter doublons (SQLite)
-      if (!this.dataSource) throw new Error('DataSource non initialisé');
-      return this.dataSource.transaction(async manager => {
-        const rdv = await manager.findOne(Rdv, { where: { token } });
-        if (!rdv) throw new BadRequestException(Constants.ERROR_INVALID_TOKEN);
+      if (!this.rdvRepo || !this.voteRepo) throw new Error('Repositories non initialisés');
 
-        const existing = await manager.findOne(Vote, { where: { token } });
-        if (existing) throw new ConflictException(Constants.ERROR_VOTE_ALREADY_EXISTS);
+      // Vérifier que le token existe et qu'il n'y a pas déjà de vote
+      const rdv = await this.rdvRepo.findOne({ where: { token } });
+      if (!rdv) throw new BadRequestException(Constants.ERROR_INVALID_TOKEN);
 
-        const vote = manager.create(Vote, {
-          token,
-          note,
-          commentaire: commentaire || null,
-          dateVote: new Date()
-        });
-        await manager.save(vote);
+      const existing = await this.voteRepo.findOne({ where: { token } });
+      if (existing) throw new ConflictException(Constants.ERROR_VOTE_ALREADY_EXISTS);
 
-        return { 
-          vote, 
-          redirect: Constants.isPositiveRating(note) ? Constants.getGoogleReviewUrl() : null 
-        };
+      const vote = this.voteRepo.create({
+        token,
+        note,
+        commentaire: commentaire || null,
+        dateVote: new Date()
       });
+      await this.voteRepo.save(vote);
+
+      return { 
+        vote, 
+        redirect: Constants.isPositiveRating(note) ? Constants.getGoogleReviewUrl() : null 
+      };
     }
   }
 

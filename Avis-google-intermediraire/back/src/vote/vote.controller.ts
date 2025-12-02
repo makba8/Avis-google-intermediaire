@@ -19,7 +19,7 @@ export class VoteController {
     return this.voteService.validateToken(token);
   }
 
-  @Get()
+  @Get(':token')
   async redirectToApiVote(@Query('token') token: string) {
      return this.voteService.getConfInformation(token);
   }
